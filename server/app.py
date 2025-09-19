@@ -43,19 +43,33 @@ def delete_workout(id):
 
 @app.route('/exercises')
 def get_exercises():
-    pass
+    return make_response(ExerciseSchema(many=True).dump(Exercise.query.all()), 200)
 
 @app.route('/exercises/<int:id>')
 def get_exercise_by_id(id):
-    pass
+    exercise = Exercise.query.filter_by(id=id).first()
+    if exercise:
+        return make_response(ExerciseSchema().dump(exercise), 200)
+    else:
+        return make_response({'message': f'Exercise {id} not found'}, 404)
 
 @app.route('/exercises', methods=['POST'])
 def add_exercise():
-    pass
+    data = request.json
+    new_exercise = ExerciseSchema().load(data)
+    db.session.add(new_exercise)
+    db.session.commit()
+    return make_response({'message': 'Exercise created'}, 201)
 
 @app.route('/exercises/<int:id>', methods=['DELETE'])
 def delete_exercise(id):
-    pass
+    exercise = Exercise.query.filter_by(id=id).first()
+    if exercise:
+        db.session.delete(exercise)
+        db.session.commit()
+        return make_response({'message': f'Exercise {id} deleted'}, 200)
+    else:
+        return make_response({'message': f'Exercise {id} not found'}, 404)
 
 @app.route('/workouts/<int:workout_id>/exercises/<int:exercise_id>/workout_exercises', methods=["POST"])
 def add_exercise_to_workout(workout_id, exercise_id):
