@@ -1,4 +1,4 @@
-from flask import Flask, make_response
+from flask import Flask, make_response, request
 from flask_migrate import Migrate
 
 from models import *
@@ -13,19 +13,33 @@ db.init_app(app)
 
 @app.route('/workouts')
 def get_workouts():
-    pass
+    return make_response(WorkoutSchema(many=True).dump(Workout.query.all()), 200)
 
 @app.route('/workouts/<int:id>')
 def get_workout_by_id(id):
-    pass
+    workout = Workout.query.filter_by(id=id).first()
+    if workout:
+        return make_response(WorkoutSchema().dump(workout), 200)
+    else:
+        return make_response({'message': f'Workout {id} not found'}, 404)
 
 @app.route('/workouts', methods=['POST'])
 def add_workout():
-    pass
+    data = request.json
+    new_workout = WorkoutSchema().load(data)
+    db.session.add(new_workout)
+    db.session.commit()
+    return make_response({'message': 'Workout created'}, 201)
 
 @app.route('/workouts/<int:id>', methods=['DELETE'])
 def delete_workout(id):
-    pass
+    workout = Workout.query.filter_by(id=id).first()
+    if workout:
+        db.session.delete(workout)
+        db.session.commit()
+        return make_response({'message': f'Workout {id} deleted'}, 200)
+    else:
+        return make_response({'message': f'Workout {id} not found'}, 404)
 
 @app.route('/exercises')
 def get_exercises():

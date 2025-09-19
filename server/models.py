@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import CheckConstraint
-from marshmallow import Schema, fields, validate, ValidationError
+from marshmallow import Schema, fields, validate, post_load
 
 db = SQLAlchemy()
 
@@ -36,6 +36,10 @@ class ExerciseSchema(Schema):
     workout_exercises = fields.List(fields.Nested(lambda: WorkoutExerciseSchema(exclude=('exercise',))))
     workouts = fields.List(fields.Nested(lambda: WorkoutSchema(exclude=('workout_exercises', 'exercises'))))
 
+    @post_load
+    def make_exercise(self, data, **kwargs):
+        return Exercise(**data)
+
 class Workout(db.Model):
     __tablename__ = 'workouts'
 
@@ -54,11 +58,15 @@ class Workout(db.Model):
 class WorkoutSchema(Schema):
     id = fields.Int(dump_only=True)
     date = fields.DateTime(required=True)
-    duration_minutes = fields.Int(validate=validate.Length(max=1439))
+    duration_minutes = fields.Int(validate=validate.Range(min=0, max=1439))
     notes = fields.String()
 
     workout_exercises = fields.List(fields.Nested(lambda: WorkoutExerciseSchema(exclude=('workout',))))
     exercises = fields.List(fields.Nested(lambda: ExerciseSchema(exclude=('workout_exercises', 'workouts'))))
+
+    @post_load
+    def make_workout(self, data, **kwargs):
+        return Workout(**data)
 
 class WorkoutExercise(db.Model):
     __tablename__ = 'workout_exercises'
@@ -85,9 +93,13 @@ class WorkoutExercise(db.Model):
     
 class WorkoutExerciseSchema(Schema):
     id = fields.Int(dump_only=True)
-    reps = fields.Int(validate=validate.Length(min=1))
-    sets = fields.Int(validate=validate.Length(min=1))
-    duration_seconds = fields.Int(validate=validate.Length(min=1))
+    reps = fields.Int(validate=validate.Range(min=1))
+    sets = fields.Int(validate=validate.Range(min=1))
+    duration_seconds = fields.Int(validate=validate.Range(min=1))
 
     workout = fields.Nested(WorkoutSchema(exclude=("workout_exercises",)))
     exercise = fields.Nested(ExerciseSchema(exclude=("workout_exercises",)))
+
+    @post_load
+    def make_workout_exercise(self, data, **kwargs):
+        return WorkoutExercise(**data)
